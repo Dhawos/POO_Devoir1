@@ -6,6 +6,7 @@ import java.io.BufferedReader;
  * Created by dhawo on 03/02/2017.
  */
 public class ApplicationClient {
+    java.io.PrintStream sortieWriter = System.out;
 
     /**
      * prend le fichier contenant la liste des commandes, et le charge dans une
@@ -40,7 +41,15 @@ public class ApplicationClient {
      * traiteCommande(Commande uneCommande).
      */
     public void scenario() {
-
+        sortieWriter.println("Debut des traitements:");
+        Commande prochaine = saisisCommande(commandesReader);
+        while (prochaine != null) {
+            sortieWriter.println("\tTraitement de la commande " + prochaine + " ...");
+            Object resultat = traiteCommande(prochaine);
+            sortieWriter.println("\t\tResultat: " + resultat);
+            prochaine = saisisCommande(commandesReader);
+        }
+        sortieWriter.println("Fin des traitements");
     }
 
     /**
