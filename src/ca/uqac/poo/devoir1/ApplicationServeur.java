@@ -26,7 +26,7 @@ public class ApplicationServeur {
     private ObjectOutputStream out;
     private ObjectInputStream in;
     private HashMap<String,Object> objects;
-
+    private ClassLoader loader;
     /**
      * prend le numéro de port, crée un SocketServer sur le port
      */
@@ -90,7 +90,7 @@ public class ApplicationServeur {
                 String nomQualifie_create = uneCommande.getArgument(0);
                 String id_create = uneCommande.getArgument(1);
                 try{
-                    traiterCreation(Class.forName(nomQualifie_create),id_create);
+                    traiterCreation(Class.forName(nomQualifie_create,true,loader),id_create);
                 }catch(ClassNotFoundException ex){
                     log(ex.getMessage());
                 }
@@ -100,11 +100,6 @@ public class ApplicationServeur {
                 traiterChargement(nomQualifie);
                 break;
             case "compilation":
-                /*String[] sourcesFiles = uneCommande.getArgument(0).split(",");
-                String classPath = uneCommande.getArgument(1);
-                for(String sourceFile : sourcesFiles){
-                    traiterCompilation(sourceFile);
-                }*/
                 String sourceFiles = uneCommande.getArgument(0);
                 String classPath = uneCommande.getArgument(1);
                 traiterCompilation(sourceFiles);
@@ -171,10 +166,10 @@ public class ApplicationServeur {
     public void traiterEcriture(Object pointeurObjet, String attribut, Object valeur) {
         Class c = pointeurObjet.getClass();
         try{
-            Field field = c.getField(attribut);
+            Field field = c.getDeclaredField(attribut);
             if(Modifier.isPrivate(field.getModifiers())){
                 String upperAttribute = attribut.substring(0, 1).toUpperCase() + attribut.substring(1);
-                Method setter = c.getMethod("set" + upperAttribute);
+                Method setter = c.getMethod("set" + upperAttribute, field.getType());
                 setter.invoke(pointeurObjet,valeur);
             }else{
                 field.set(pointeurObjet,valeur);
@@ -224,18 +219,13 @@ public class ApplicationServeur {
      */
     public void traiterChargement(String nomQualifie) {
         try{
-            File file = new File(classFolder);
-            // Convert File to a URL
-            URL url = file.toURI().toURL(); //
-            URL[] urls = new URL[] { url };
-            ClassLoader loader = new URLClassLoader(urls);
-            Class thisClass = loader.loadClass(nomQualifie);
+            loader.loadClass(nomQualifie);
             out.writeObject(new Boolean(true));
             out.flush();
         }catch (IOException ex){
             log(ex.getMessage());
         }catch (ClassNotFoundException ex){
-
+            log(ex.getMessage());
         }
     }
 
@@ -325,6 +315,15 @@ public class ApplicationServeur {
         serveur.sourceFolder = args[1];
         serveur.classFolder = args[2];
         serveur.outputFile = args[3];
+        File file = new File(serveur.classFolder);
+        try{
+            // Convert File to a URL
+            URL url = file.toURI().toURL();
+            URL[] urls = new URL[] { url };
+            serveur.loader = new URLClassLoader(urls);
+        }catch (MalformedURLException ex){
+            serveur.log(ex.getMessage());
+        }
         if(serveur.welcomeSocket != null){
             serveur.aVosOrdres();
         }
