@@ -12,6 +12,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 
 /**
  * Created by dhawo on 03/02/2017.
@@ -96,8 +97,9 @@ public class ApplicationServeur {
                     traiterCompilation(sourceFile);
                 }
                 break;
-            case "appel":
+            case "fonction":
                 String id_call = uneCommande.getArgument(0);
+                Object obj = objects.get(id_call);
                 String nom_fonction = uneCommande.getArgument(1);
                 String[] parametres = uneCommande.getArgument(2).split(",");
                 ArrayList<String> valeurs = new ArrayList<>();
@@ -107,8 +109,9 @@ public class ApplicationServeur {
                     types.add(splitted_param[0]);
                     valeurs.add(splitted_param[1]);
                 }
-                String[] types_array = new String[valeurs.size()];
-                traiterAppel(id_call,nom_fonction, types_array,valeurs.toArray());
+                String[] types_array = new String[types.size()];
+                types.toArray(types_array);
+                traiterAppel(obj,nom_fonction, types_array,valeurs.toArray());
                 break;
         }
     }
@@ -189,7 +192,18 @@ public class ApplicationServeur {
      * s’est faite correctement.
      */
     public void traiterCreation(Class classeDeLobjet, String identificateur) {
-
+        try{
+            Object newObject = classeDeLobjet.newInstance();
+            objects.put(identificateur,newObject);
+            ObjectOutputStream outputToClient = new ObjectOutputStream(connectionSocket.getOutputStream()); //Création du Stream de sortie
+            outputToClient.writeObject(new Boolean(true));
+        }catch(InstantiationException ex){
+            log(ex.getMessage());
+        }catch(IllegalAccessException ex){
+            log(ex.getMessage());
+        }catch (IOException ex){
+        log(ex.getMessage());
+        }
     }
 
     /**
@@ -251,7 +265,29 @@ public class ApplicationServeur {
      * passé)
      */
     public void traiterAppel(Object pointeurObjet, String nomFonction, String[] types, Object[] valeurs){
-
+        try{
+            Class c = pointeurObjet.getClass();
+            ArrayList<Class> classes = new ArrayList<>();
+            for(String type : types){
+                classes.add(Class.forName(type));
+            }
+            Class[] types_array = new Class[classes.size()];
+            classes.toArray(types_array);
+            Method method = c.getMethod(nomFonction,types_array);
+            Object returnValue = method.invoke(pointeurObjet,valeurs);
+            ObjectOutputStream outputToClient = new ObjectOutputStream(connectionSocket.getOutputStream()); //Création du Stream de sortie
+            outputToClient.writeObject(returnValue);
+        }catch(ClassNotFoundException ex){
+            log(ex.getMessage());
+        }catch(NoSuchMethodException ex){
+            log(ex.getMessage());
+        }catch(InvocationTargetException ex){
+            log(ex.getMessage());
+        }catch(IllegalAccessException ex){
+            log(ex.getMessage());
+        }catch(IOException ex){
+            log(ex.getMessage());
+        }
     }
 
     /**
@@ -280,6 +316,8 @@ public class ApplicationServeur {
     private void log(String message){
         try
         {
+            System.out.println(LocalDateTime.now().toString() + message);
+            System.out.println("\r\n");
             FileWriter fw = new FileWriter(outputFile);
             fw.write (LocalDateTime.now().toString() + message);
             fw.write ("\r\n");
@@ -287,7 +325,7 @@ public class ApplicationServeur {
         }
         catch (IOException exception)
         {
-            System.out.println ("Erreur lors de l'écriture : " + exception.getMessage());
+            System.out.println ("Erreur lors de l'écriture de l'erreur dans le fichier de log : " + exception.getMessage());
         }
     }
 }
