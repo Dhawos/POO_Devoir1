@@ -10,7 +10,6 @@ import ca.uqac.poo.devoir1.Commande;
  */
 public class ApplicationClient {
     java.io.PrintStream sortieWriter = System.out;
-
     /**
      * prend le fichier contenant la liste des commandes, et le charge dans une
      * variable du type Commande qui est retournée

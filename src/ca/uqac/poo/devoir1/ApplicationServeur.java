@@ -4,8 +4,12 @@ import com.sun.org.apache.xpath.internal.operations.Bool;
 import javax.tools.*;
 import java.io.*;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.net.*;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 
@@ -60,14 +64,26 @@ public class ApplicationServeur {
     public void traiteCommande(Commande uneCommande) {
         switch(uneCommande.getType()){
             case "lecture":
-                String id = uneCommande.getArgument(0);
-                String attribut = uneCommande.getArgument(1);
-                Object pointeurObject = objects.get(id);
-                traiterLecture(pointeurObject,attribut);
+                String id_read = uneCommande.getArgument(0);
+                String attribut_read = uneCommande.getArgument(1);
+                Object pointeurObject_read = objects.get(id_read);
+                traiterLecture(pointeurObject_read,attribut_read);
                 break;
             case "ecriture":
+                String id_write = uneCommande.getArgument(0);
+                String attribut_write = uneCommande.getArgument(1);
+                String valeur_write = uneCommande.getArgument(2);
+                Object pointeurObject_write = objects.get(id_write);
+                traiterEcriture(pointeurObject_write,attribut_write,valeur_write);
                 break;
             case "creation":
+                String nomQualifie_create = uneCommande.getArgument(0);
+                String id_create = uneCommande.getArgument(1);
+                try{
+                    traiterCreation(Class.forName(nomQualifie_create),id_create);
+                }catch(ClassNotFoundException ex){
+                    log(ex.getMessage());
+                }
                 break;
             case "chargement":
                 String nomQualifie = uneCommande.getArgument(0);
@@ -81,6 +97,18 @@ public class ApplicationServeur {
                 }
                 break;
             case "appel":
+                String id_call = uneCommande.getArgument(0);
+                String nom_fonction = uneCommande.getArgument(1);
+                String[] parametres = uneCommande.getArgument(2).split(",");
+                ArrayList<String> valeurs = new ArrayList<>();
+                ArrayList<Object> types = new ArrayList<>();
+                for(String parametre : parametres){
+                    String[] splitted_param = parametre.split(":");
+                    types.add(splitted_param[0]);
+                    valeurs.add(splitted_param[1]);
+                }
+                String[] types_array = new String[valeurs.size()];
+                traiterAppel(id_call,nom_fonction, types_array,valeurs.toArray());
                 break;
         }
     }
@@ -91,16 +119,32 @@ public class ApplicationServeur {
      */
     public void traiterLecture(Object pointeurObjet, String attribut) {
         Class c = pointeurObjet.getClass();
+        Object value = null;
         try{
             Field field = c.getField(attribut);
-            Object value = (field.getType().cast(field.get(pointeurObjet)));
+            if(Modifier.isPrivate(field.getModifiers())){
+                String upperAttribute = attribut.substring(0, 1).toUpperCase() + attribut.substring(1);
+                Method getter = c.getMethod("get" + upperAttribute);
+                value = field.getType().cast(getter.invoke(pointeurObjet,null));
+            }else{
+                value = (field.getType().cast(field.get(pointeurObjet)));
+            }
             ObjectOutputStream outputToClient = new ObjectOutputStream(connectionSocket.getOutputStream()); //Création du Stream de sortie
             outputToClient.writeObject(value);
-        }catch(NoSuchFieldException ex){
+        }
+        catch(NoSuchFieldException ex){
             log(ex.getMessage());
-        }catch(IllegalAccessException ex){
+        }
+        catch (NoSuchMethodException ex){
             log(ex.getMessage());
-        }catch(IOException ex){
+        }
+        catch(InvocationTargetException ex){
+            log(ex.getMessage());
+        }
+        catch(IllegalAccessException ex){
+            log(ex.getMessage());
+        }
+        catch(IOException ex){
             log(ex.getMessage());
         }
     }
@@ -110,7 +154,34 @@ public class ApplicationServeur {
      * s’est faite correctement.
      */
     public void traiterEcriture(Object pointeurObjet, String attribut, Object valeur) {
-
+        Class c = pointeurObjet.getClass();
+        try{
+            Field field = c.getField(attribut);
+            if(Modifier.isPrivate(field.getModifiers())){
+                String upperAttribute = attribut.substring(0, 1).toUpperCase() + attribut.substring(1);
+                Method setter = c.getMethod("set" + upperAttribute);
+                setter.invoke(pointeurObjet,valeur);
+            }else{
+                field.set(pointeurObjet,valeur);
+            }
+            ObjectOutputStream outputToClient = new ObjectOutputStream(connectionSocket.getOutputStream()); //Création du Stream de sortie
+            outputToClient.writeObject(new Boolean(true));
+        }
+        catch(NoSuchFieldException ex){
+            log(ex.getMessage());
+        }
+        catch (NoSuchMethodException ex){
+            log(ex.getMessage());
+        }
+        catch(InvocationTargetException ex){
+            log(ex.getMessage());
+        }
+        catch(IllegalAccessException ex){
+            log(ex.getMessage());
+        }
+        catch(IOException ex){
+            log(ex.getMessage());
+        }
     }
 
     /**
