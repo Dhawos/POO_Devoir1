@@ -12,6 +12,8 @@ import ca.uqac.poo.devoir1.Commande;
  */
 public class ApplicationClient {
     java.io.PrintStream sortieWriter = System.out;
+    private String hostname;
+    private int port;
 
     private BufferedReader commandesReader;
     //private BufferedWriter sortieWriter2;
@@ -140,7 +142,7 @@ public class ApplicationClient {
      */
     public Object traiteCommande(Commande uneCommande) {
         try{
-            Socket clientSocket = new Socket("hostname", 6789);
+            Socket clientSocket = new Socket(this.hostname, this.port);
             OutputStream os = clientSocket.getOutputStream();
             ObjectOutputStream oos = new ObjectOutputStream(os);
             oos.writeObject(uneCommande);
@@ -207,7 +209,11 @@ public class ApplicationClient {
     public static void main(String[] args) {
         ApplicationClient applicationClient = new ApplicationClient();
 
-        applicationClient.initialise("commandes.txt", "sortie.txt");
+        applicationClient.hostname = args[0];
+        applicationClient.port = Integer.parseInt(args[1]);
+        String commandes = args[2];
+        String sortie = args[3];
+        applicationClient.initialise(commandes, sortie);
         applicationClient.scenario();
 
 
