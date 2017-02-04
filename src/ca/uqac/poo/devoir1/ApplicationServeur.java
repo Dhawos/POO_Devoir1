@@ -46,6 +46,7 @@ public class ApplicationServeur {
         while(true){
             try{
                 connectionSocket = welcomeSocket.accept(); //Accepte la connexion (une seule à la fois dans ce cas)
+                log("Connexion acceptee venant de : " + connectionSocket.getInetAddress() + ":" + connectionSocket.getPort());
                 ObjectInputStream inputFromClient = new ObjectInputStream(connectionSocket.getInputStream()); //Créer le Stream d'entrée
                 Commande commande = (Commande)inputFromClient.readObject(); //Récupération de la commande
                 traiteCommande(commande); //Traitement de la commande
