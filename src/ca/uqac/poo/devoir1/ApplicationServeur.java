@@ -17,15 +17,15 @@ import java.util.HashMap;
  * Created by dhawo on 03/02/2017.
  */
 public class ApplicationServeur {
-    private ServerSocket welcomeSocket = null;
+    private ServerSocket welcomeSocket = null; //Socket d'écoute
     private String sourceFolder; //Chemin vers dossier des sourcs
     private String classFolder; //Chemin vers dossier de classes
-    private String outputFile; //
-    private Socket connectionSocket;
-    private ObjectOutputStream out;
-    private ObjectInputStream in;
-    private HashMap<String,Object> objects;
-    private ClassLoader loader;
+    private String outputFile; //Fichier de sortie
+    private Socket connectionSocket; //Socket de connection
+    private ObjectOutputStream out; //Flux de sortie
+    private ObjectInputStream in; //FLux d'entrée
+    private HashMap<String,Object> objects; //Flux de sortie
+    private ClassLoader loader; //Chargeur de classes
     /**
      * prend le numéro de port, crée un SocketServer sur le port
      */
@@ -49,14 +49,14 @@ public class ApplicationServeur {
                 log("En attente de connection");
                 connectionSocket = welcomeSocket.accept(); //Accepte la connexion (une seule à la fois dans ce cas)
                 log("Connexion acceptee venant de : " + connectionSocket.getInetAddress() + ":" + connectionSocket.getPort());
-                in = new ObjectInputStream(connectionSocket.getInputStream());
+                in = new ObjectInputStream(connectionSocket.getInputStream()); //Création des flux
                 out = new ObjectOutputStream(connectionSocket.getOutputStream());
                 out.flush();
                 Commande commande = (Commande)in.readObject(); //Récupération de la commande
                 traiteCommande(commande); //Traitement de la commande
                 out.close();
                 in.close();
-                connectionSocket.close();
+                connectionSocket.close(); //Fermeture de la connexion
                 log("Connexion fermee avec : " + connectionSocket.getInetAddress() + ":" + connectionSocket.getPort());
             }catch(IOException ex){
                 System.out.println("La connexion n'as pas pu etre acceptée");
@@ -131,9 +131,10 @@ public class ApplicationServeur {
     public void traiterLecture(Object pointeurObjet, String attribut) {
         Class c = pointeurObjet.getClass();
         Object value = null;
+        boolean error = false;
         try{
             Field field = c.getDeclaredField(attribut);
-            if(Modifier.isPrivate(field.getModifiers())){
+            if(Modifier.isPrivate(field.getModifiers())){ //Field privé
                 String upperAttribute = attribut.substring(0, 1).toUpperCase() + attribut.substring(1);
                 Method getter = c.getMethod("get" + upperAttribute);
                 value = field.getType().cast(getter.invoke(pointeurObjet,null));
@@ -143,20 +144,18 @@ public class ApplicationServeur {
             out.writeObject(value);
             out.flush();
         }
-        catch(NoSuchFieldException ex){
+        catch (Exception ex){
             log(ex.getMessage());
-        }
-        catch (NoSuchMethodException ex){
-            log(ex.getMessage());
-        }
-        catch(InvocationTargetException ex){
-            log(ex.getMessage());
-        }
-        catch(IllegalAccessException ex){
-            log(ex.getMessage());
-        }
-        catch(IOException ex){
-            log(ex.getMessage());
+            error = true;
+        }finally {
+            if(error){
+                try{
+                    out.writeObject(false);
+                    out.flush();
+                }catch(IOException ex){
+                    log(ex.getMessage());
+                }
+            }
         }
     }
 
@@ -166,6 +165,7 @@ public class ApplicationServeur {
      */
     public void traiterEcriture(Object pointeurObjet, String attribut, Object valeur) {
         Class c = pointeurObjet.getClass();
+        boolean error = false;
         try{
             Field field = c.getDeclaredField(attribut);
             if(Modifier.isPrivate(field.getModifiers())){
@@ -178,20 +178,18 @@ public class ApplicationServeur {
             out.writeObject(new Boolean(true));
             out.flush();
         }
-        catch(NoSuchFieldException ex){
+        catch (Exception ex){
             log(ex.getMessage());
-        }
-        catch (NoSuchMethodException ex){
-            log(ex.getMessage());
-        }
-        catch(InvocationTargetException ex){
-            log(ex.getMessage());
-        }
-        catch(IllegalAccessException ex){
-            log(ex.getMessage());
-        }
-        catch(IOException ex){
-            log(ex.getMessage());
+            error = true;
+        }finally {
+            if(error){
+                try{
+                    out.writeObject(false);
+                    out.flush();
+                }catch(IOException ex){
+                    log(ex.getMessage());
+                }
+            }
         }
     }
 
@@ -200,17 +198,24 @@ public class ApplicationServeur {
      * s’est faite correctement.
      */
     public void traiterCreation(Class classeDeLobjet, String identificateur) {
+        boolean error = false;
         try{
             Object newObject = classeDeLobjet.newInstance();
             objects.put(identificateur,newObject);
             out.writeObject(new Boolean(true));
             out.flush();
-        }catch(InstantiationException ex){
+        }catch (Exception ex){
             log(ex.getMessage());
-        }catch(IllegalAccessException ex){
-            log(ex.getMessage());
-        }catch (IOException ex){
-        log(ex.getMessage());
+            error = true;
+        }finally {
+            if(error){
+                try{
+                    out.writeObject(false);
+                    out.flush();
+                }catch(IOException ex){
+                    log(ex.getMessage());
+                }
+            }
         }
     }
 
@@ -219,14 +224,23 @@ public class ApplicationServeur {
      * s’est faite correctement.
      */
     public void traiterChargement(String nomQualifie) {
+        boolean error = false;
         try{
             loader.loadClass(nomQualifie);
             out.writeObject(new Boolean(true));
             out.flush();
-        }catch (IOException ex){
+        }catch (Exception ex){
             log(ex.getMessage());
-        }catch (ClassNotFoundException ex){
-            log(ex.getMessage());
+            error = true;
+        }finally {
+            if(error){
+                try{
+                    out.writeObject(false);
+                    out.flush();
+                }catch(IOException ex){
+                    log(ex.getMessage());
+                }
+            }
         }
     }
 
@@ -236,6 +250,7 @@ public class ApplicationServeur {
      * relatif par rapport au chemin des fichiers sources.
      */
     public void traiterCompilation(String cheminRelatifFichierSource) {
+        boolean error = false;
         try{
             JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
             String[] sourceFileNames = cheminRelatifFichierSource.split(",");
@@ -259,8 +274,18 @@ public class ApplicationServeur {
 
             out.writeObject(new Boolean(true));
             out.flush();
-        }catch (IOException ex){
+        }catch (Exception ex){
             log(ex.getMessage());
+            error = true;
+        }finally {
+            if(error){
+                try{
+                    out.writeObject(false);
+                    out.flush();
+                }catch(IOException ex){
+                    log(ex.getMessage());
+                }
+            }
         }
 
     }
@@ -274,6 +299,7 @@ public class ApplicationServeur {
      */
     public void traiterAppel(Object pointeurObjet, String nomFonction, String[] types, Object[] valeurs){
         Method method = null;
+        boolean error = false;
         try{
             Class c = pointeurObjet.getClass();
             ArrayList<Class> classes = new ArrayList<>();
@@ -303,22 +329,31 @@ public class ApplicationServeur {
             }
             method = c.getMethod(nomFonction,types_array);
             Object returnValue = method.invoke(pointeurObjet,valeurs);
+            if(returnValue == null){
+                returnValue = new Boolean(true);
+            }
             out.writeObject(returnValue);
             out.flush();
-        }catch(NoSuchMethodException ex){
-            log(ex.getMessage());
         }catch(InvocationTargetException ex){
             try{
-                out.writeObject(null);
+                out.writeObject(new Boolean(false));
                 out.flush();
                 log("La méthode appellée : " + method.getName() + " a renvoyé une exception : " + ex.getTargetException().getMessage());
             }catch (IOException e){
                 log(e.getMessage());
             }
-        }catch(IllegalAccessException ex){
+        }catch (Exception ex){
             log(ex.getMessage());
-        }catch(IOException ex){
-            log(ex.getMessage());
+            error = true;
+        }finally {
+            if(error){
+                try{
+                    out.writeObject(false);
+                    out.flush();
+                }catch(IOException ex){
+                    log(ex.getMessage());
+                }
+            }
         }
     }
 
