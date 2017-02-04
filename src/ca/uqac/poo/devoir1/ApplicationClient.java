@@ -26,6 +26,9 @@ public class ApplicationClient {
             ArrayList<String> arguments = new ArrayList<String>();
             String[] parts = line.split("#");
             String type =  parts[0];
+            if (type == "fonction"){
+                type = "appel";
+            }
             String part2 = parts[1];
 
             while (part2.contains("#")) {
@@ -146,12 +149,29 @@ public class ApplicationClient {
 
             InputStream is = clientSocket.getInputStream();
             ObjectInputStream ois = new ObjectInputStream(is);
-            Object objectToReturn = ois.readObject();
+            Object result = ois.readObject();
+            String type = uneCommande.getType();
+            switch (type){
+                case "lecture":
+                    return result;
+                case "ecriture":
+                    return (Boolean)result;
+                case "creation":
+                    return (Boolean)result;
+                case "chargement":
+                    return (Boolean)result;
+                case "compilation":
+                    return (Boolean)result;
+                case "appel":
+                    if (result instanceof Boolean){
+                        return (Boolean)result;
+                    }else{
+                        return result;
+                    }
+            }
             ois.close();
             is.close();
             clientSocket.close();
-
-            return objectToReturn;
 
 
         }catch(Exception e){
