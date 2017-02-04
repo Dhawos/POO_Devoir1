@@ -10,6 +10,10 @@ public class Commande implements Serializable {
     private String type;
     private ArrayList<String> arguments;
 
+    public Commande(){
+        this.type = "type";
+        this.arguments = new ArrayList<String>();
+    }
     public Commande(String type, ArrayList<String> arguments){
         this.arguments = arguments;
         this.type = type;

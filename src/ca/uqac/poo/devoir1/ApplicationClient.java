@@ -1,6 +1,9 @@
 package ca.uqac.poo.devoir1;
 
 import java.io.BufferedReader;
+import java.io.IOException;
+import java.util.ArrayList;
+import ca.uqac.poo.devoir1.Commande;
 
 /**
  * Created by dhawo on 03/02/2017.
@@ -13,6 +16,74 @@ public class ApplicationClient {
      * variable du type Commande qui est retournée
      */
     public Commande saisisCommande(BufferedReader fichier) {
+        try{
+            String line = fichier.readLine();
+            ArrayList<String> arguments = new ArrayList<String>();
+            String[] parts = line.split("#");
+            String type =  parts[0];
+            String part2 = parts[1];
+
+            switch (type){
+                case "compilation":
+                    while (part2.contains(",")) {
+                        parts = part2.split(",");   //chemin relatif du fichier
+                        arguments.add(parts[0]);    //source 1 à n-1
+                        part2 = parts[1];
+                    }
+                    parts = part2.split("#");
+                    arguments.add(parts[0]);    //chemin relatif du fichier source n
+                    arguments.add(parts[1]);    //chemin relatif des fichiers class
+                    break;
+
+                case "chargement":
+                    arguments.add(part2);   //nom qualifie de classe
+                    break;
+
+                case "creation":
+                    parts = part2.split("#");
+                    arguments.add(parts[0]);    //nom classe
+                    arguments.add(parts[1]);    //identificateur
+                    break;
+
+                case "lecture":
+                    parts = part2.split("#");
+                    arguments.add(parts[0]);    //identificateur
+                    arguments.add(parts[1]);    //nom attribut
+                    break;
+
+                case "ecriture":
+                    parts = part2.split("#");
+                    arguments.add(parts[0]);    //identificateur
+
+                    part2 = parts[1];
+                    parts = part2.split("#");
+                    arguments.add(parts[0]);    //nom attribut
+                    arguments.add(parts[1]);    //valeur
+                    break;
+
+                case "fonction":
+                    parts = part2.split("#");
+                    arguments.add(parts[0]);    //identificateur
+
+                    part2 = parts[1];
+                    parts = part2.split("#");
+                    arguments.add(parts[0]);    //nom fonction
+
+                    part2 = parts[1];           //liste des parametres
+                    while (part2.contains(",")) {
+                        parts = part2.split(",");   //chemin relatif du fichier
+                        arguments.add(parts[0]);    //source 1 à n-1
+                        part2 = parts[1];
+                    }
+                    arguments.add(part2);
+                    break;
+            }
+            return new Commande(type, arguments);
+
+        }catch (IOException e){
+            e.printStackTrace();
+        }
+        return new Commande();
 
     }
 
