@@ -272,15 +272,26 @@ public class ApplicationServeur {
      * passé)
      */
     public void traiterAppel(Object pointeurObjet, String nomFonction, String[] types, Object[] valeurs){
+        Method method = null;
         try{
             Class c = pointeurObjet.getClass();
             ArrayList<Class> classes = new ArrayList<>();
             for(String type : types){
-                classes.add(Class.forName(type));
+                classes.add(Class.forName(type,true,loader));
             }
             Class[] types_array = new Class[classes.size()];
             classes.toArray(types_array);
-            Method method = c.getMethod(nomFonction,types_array);
+            for(int i = 0; i < valeurs.length; i++){
+                Object valeur = valeurs[i];
+                if(valeur instanceof String){
+                    String str = (String)valeur;
+                    if(str.matches("ID\\(.*\\)")){
+                        String id = ((String) valeur).substring(3,((String) valeur).length()-1);
+                        valeurs[i] = types_array[i].cast(objects.get(id));
+                    }
+                }
+            }
+            method = c.getMethod(nomFonction,types_array);
             Object returnValue = method.invoke(pointeurObjet,valeurs);
             out.writeObject(returnValue);
             out.flush();
@@ -289,7 +300,13 @@ public class ApplicationServeur {
         }catch(NoSuchMethodException ex){
             log(ex.getMessage());
         }catch(InvocationTargetException ex){
-            log(ex.getMessage());
+            try{
+                out.writeObject(null);
+                out.flush();
+                log("La méthode appellée : " + method.getName() + " a renvoyé une exception : " + ex.getTargetException().getMessage());
+            }catch (IOException e){
+                log(e.getMessage());
+            }
         }catch(IllegalAccessException ex){
             log(ex.getMessage());
         }catch(IOException ex){
