@@ -3,9 +3,7 @@ package ca.uqac.poo.devoir1;
 import java.io.*;
 import java.net.Socket;
 import java.util.ArrayList;
-import java.util.Objects;
 
-import ca.uqac.poo.devoir1.Commande;
 
 /**
  * Created by dhawo on 03/02/2017.
@@ -106,6 +104,7 @@ public class ApplicationClient {
             }
             switch (type){
                 case "lecture":
+                    result = result.getClass().cast(result);
                     return result;
                 case "ecriture":
                     return (Boolean)result;
@@ -116,9 +115,13 @@ public class ApplicationClient {
                 case "compilation":
                     return (Boolean)result;
                 case "appel":
+                    System.out.println("test appel !!!!!!!");
                     if (result instanceof Boolean){
                         return (Boolean)result;
                     }else{
+                        System.out.println("test blablablabla");
+                        System.out.println(result.getClass());
+                        result = result.getClass().cast(result);
                         return result;
                     }
             }
