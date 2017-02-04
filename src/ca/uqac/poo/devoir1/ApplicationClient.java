@@ -25,6 +25,9 @@ public class ApplicationClient {
     public Commande saisisCommande(BufferedReader fichier) {
         try{
             String line = fichier.readLine();
+            if (line == null){
+                return null;
+            }
             ArrayList<String> arguments = new ArrayList<String>();
             String[] parts = line.split("#");
             String type =  parts[0];
