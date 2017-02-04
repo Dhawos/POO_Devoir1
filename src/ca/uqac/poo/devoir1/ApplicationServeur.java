@@ -12,7 +12,6 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
 
 /**
  * Created by dhawo on 03/02/2017.
@@ -108,13 +107,15 @@ public class ApplicationServeur {
                 String id_call = uneCommande.getArgument(0);
                 Object obj = objects.get(id_call);
                 String nom_fonction = uneCommande.getArgument(1);
-                String[] parametres = uneCommande.getArgument(2).split(",");
                 ArrayList<String> valeurs = new ArrayList<>();
                 ArrayList<Object> types = new ArrayList<>();
-                for(String parametre : parametres){
-                    String[] splitted_param = parametre.split(":");
-                    types.add(splitted_param[0]);
-                    valeurs.add(splitted_param[1]);
+                if(uneCommande.getNbArguments() == 3){
+                    String[] parametres = uneCommande.getArgument(2).split(",");
+                    for(String parametre : parametres){
+                        String[] splitted_param = parametre.split(":");
+                        types.add(splitted_param[0]);
+                        valeurs.add(splitted_param[1]);
+                    }
                 }
                 String[] types_array = new String[types.size()];
                 types.toArray(types_array);
@@ -277,7 +278,14 @@ public class ApplicationServeur {
             Class c = pointeurObjet.getClass();
             ArrayList<Class> classes = new ArrayList<>();
             for(String type : types){
-                classes.add(Class.forName(type,true,loader));
+                try{
+                    classes.add(Class.forName(type,true,loader));
+                }
+                catch(ClassNotFoundException ex){
+                    if(type.equals("float")){
+                        classes.add(float.class);
+                    }
+                }
             }
             Class[] types_array = new Class[classes.size()];
             classes.toArray(types_array);
@@ -288,6 +296,8 @@ public class ApplicationServeur {
                     if(str.matches("ID\\(.*\\)")){
                         String id = ((String) valeur).substring(3,((String) valeur).length()-1);
                         valeurs[i] = types_array[i].cast(objects.get(id));
+                    }else if(types_array[i].equals(float.class)){
+                        valeurs[i] = Float.parseFloat((String)valeur);
                     }
                 }
             }
@@ -295,8 +305,6 @@ public class ApplicationServeur {
             Object returnValue = method.invoke(pointeurObjet,valeurs);
             out.writeObject(returnValue);
             out.flush();
-        }catch(ClassNotFoundException ex){
-            log(ex.getMessage());
         }catch(NoSuchMethodException ex){
             log(ex.getMessage());
         }catch(InvocationTargetException ex){
