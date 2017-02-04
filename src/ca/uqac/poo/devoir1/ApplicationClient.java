@@ -92,10 +92,26 @@ public class ApplicationClient {
             oos.close();
             os.close();
 
+
             InputStream is = clientSocket.getInputStream();
             ObjectInputStream ois = new ObjectInputStream(is);
             Object result = ois.readObject();
+
+            int i =0;
+            while(result == null && i < 100){
+                result = ois.readObject();
+                Thread.sleep(10);
+                i++;
+            }
+
             String type = uneCommande.getType();
+            ois.close();
+            is.close();
+            clientSocket.close();
+
+            if (result == null){
+                return null;
+            }
             switch (type){
                 case "lecture":
                     return result;
@@ -114,9 +130,6 @@ public class ApplicationClient {
                         return result;
                     }
             }
-            ois.close();
-            is.close();
-            clientSocket.close();
 
 
         }catch(Exception e){
