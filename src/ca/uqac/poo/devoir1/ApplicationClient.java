@@ -1,7 +1,6 @@
 package ca.uqac.poo.devoir1;
 
-import java.io.BufferedReader;
-import java.io.IOException;
+import java.io.*;
 import java.util.ArrayList;
 import ca.uqac.poo.devoir1.Commande;
 
@@ -10,6 +9,10 @@ import ca.uqac.poo.devoir1.Commande;
  */
 public class ApplicationClient {
     java.io.PrintStream sortieWriter = System.out;
+
+    private BufferedReader commandesReader;
+    private BufferedWriter sortieWriter2;
+
     /**
      * prend le fichier contenant la liste des commandes, et le charge dans une
      * variable du type Commande qui est retournée
@@ -90,7 +93,25 @@ public class ApplicationClient {
      * initialise : ouvre les différents fichiers de lecture et écriture
      */
     public void initialise(String fichCommandes, String fichSortie) {
+        try {
+            FileReader fileReader;
+            fileReader = new FileReader(fichCommandes);
+            this.commandesReader = new BufferedReader(fileReader);
+        }
+        catch(FileNotFoundException ex) {
+            System.out.println("Unable to open file '" );
+        }
+        catch(IOException ex) {
+            System.out.println("Error reading file '");
+        }
 
+        try {
+            FileWriter fileWriter = new FileWriter(fichSortie);
+            this.sortieWriter2 = new BufferedWriter(fileWriter);
+        }
+        catch(IOException ex) {
+            System.out.println("Error writing to file '");
+        }
     }
 
     /**
@@ -128,6 +149,11 @@ public class ApplicationClient {
      * instance de la classe ApplicationClient, l’initialiser, puis exécuter le scénario
      */
     public static void main(String[] args) {
+        ApplicationClient applicationClient = new ApplicationClient();
+
+        applicationClient.initialise("commandes.txt", "sortie.txt");
+        applicationClient.scenario();
+
 
     }
 }
