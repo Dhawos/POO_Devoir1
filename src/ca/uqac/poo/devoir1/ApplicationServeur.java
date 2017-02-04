@@ -18,9 +18,9 @@ import java.util.HashMap;
  */
 public class ApplicationServeur {
     private ServerSocket welcomeSocket = null;
-    private String sourceFolder;
-    private String classFolder;
-    private String outputFile;
+    private String sourceFolder; //Chemin vers dossier des sourcs
+    private String classFolder; //Chemin vers dossier de classes
+    private String outputFile; //
     private Socket connectionSocket;
     private ObjectOutputStream out;
     private ObjectInputStream in;
@@ -132,7 +132,7 @@ public class ApplicationServeur {
         Class c = pointeurObjet.getClass();
         Object value = null;
         try{
-            Field field = c.getField(attribut);
+            Field field = c.getDeclaredField(attribut);
             if(Modifier.isPrivate(field.getModifiers())){
                 String upperAttribute = attribut.substring(0, 1).toUpperCase() + attribut.substring(1);
                 Method getter = c.getMethod("get" + upperAttribute);
