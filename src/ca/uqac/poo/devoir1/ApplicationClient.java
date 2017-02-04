@@ -14,6 +14,8 @@ public class ApplicationClient {
     java.io.PrintStream sortieWriter = System.out;
     private String hostname;
     private int port;
+    private ObjectInputStream in;
+    private ObjectOutputStream out;
 
     private BufferedReader commandesReader;
     //private BufferedWriter sortieWriter2;
@@ -86,27 +88,17 @@ public class ApplicationClient {
     public Object traiteCommande(Commande uneCommande) {
         try{
             Socket clientSocket = new Socket(this.hostname, this.port);
-            OutputStream os = clientSocket.getOutputStream();
-            ObjectOutputStream oos = new ObjectOutputStream(os);
-            oos.writeObject(uneCommande);
-            oos.close();
-            os.close();
+            System.out.println("Connecté à : " + hostname + ":" + port);
+            out = new ObjectOutputStream(clientSocket.getOutputStream());
+            in = new ObjectInputStream(clientSocket.getInputStream());
 
-
-            InputStream is = clientSocket.getInputStream();
-            ObjectInputStream ois = new ObjectInputStream(is);
-            Object result = ois.readObject();
-
-            int i =0;
-            while(result == null && i < 100){
-                result = ois.readObject();
-                Thread.sleep(10);
-                i++;
-            }
+            out.writeObject(uneCommande);
+            out.flush();
+            Object result = in.readObject();
 
             String type = uneCommande.getType();
-            ois.close();
-            is.close();
+            out.close();
+            in.close();
             clientSocket.close();
 
             if (result == null){

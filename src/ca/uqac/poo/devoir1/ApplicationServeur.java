@@ -23,6 +23,8 @@ public class ApplicationServeur {
     private String classFolder;
     private String outputFile;
     private Socket connectionSocket;
+    private ObjectOutputStream out;
+    private ObjectInputStream in;
     private HashMap<String,Object> objects;
 
     /**
@@ -45,12 +47,18 @@ public class ApplicationServeur {
     public void aVosOrdres() {
         while(true){
             try{
+                log("En attente de connection");
                 connectionSocket = welcomeSocket.accept(); //Accepte la connexion (une seule à la fois dans ce cas)
                 log("Connexion acceptee venant de : " + connectionSocket.getInetAddress() + ":" + connectionSocket.getPort());
-                ObjectInputStream inputFromClient = new ObjectInputStream(connectionSocket.getInputStream()); //Créer le Stream d'entrée
-                Commande commande = (Commande)inputFromClient.readObject(); //Récupération de la commande
+                in = new ObjectInputStream(connectionSocket.getInputStream());
+                out = new ObjectOutputStream(connectionSocket.getOutputStream());
+                out.flush();
+                Commande commande = (Commande)in.readObject(); //Récupération de la commande
                 traiteCommande(commande); //Traitement de la commande
+                out.close();
+                in.close();
                 connectionSocket.close();
+                log("Connexion fermee avec : " + connectionSocket.getInetAddress() + ":" + connectionSocket.getPort());
             }catch(IOException ex){
                 System.out.println("La connexion n'as pas pu etre acceptée");
             }catch(ClassNotFoundException ex){
@@ -92,11 +100,14 @@ public class ApplicationServeur {
                 traiterChargement(nomQualifie);
                 break;
             case "compilation":
-                String[] sourcesFiles = uneCommande.getArgument(0).split(",");
+                /*String[] sourcesFiles = uneCommande.getArgument(0).split(",");
                 String classPath = uneCommande.getArgument(1);
                 for(String sourceFile : sourcesFiles){
                     traiterCompilation(sourceFile);
-                }
+                }*/
+                String sourceFiles = uneCommande.getArgument(0);
+                String classPath = uneCommande.getArgument(1);
+                traiterCompilation(sourceFiles);
                 break;
             case "fonction":
                 String id_call = uneCommande.getArgument(0);
@@ -133,8 +144,8 @@ public class ApplicationServeur {
             }else{
                 value = (field.getType().cast(field.get(pointeurObjet)));
             }
-            ObjectOutputStream outputToClient = new ObjectOutputStream(connectionSocket.getOutputStream()); //Création du Stream de sortie
-            outputToClient.writeObject(value);
+            out.writeObject(value);
+            out.flush();
         }
         catch(NoSuchFieldException ex){
             log(ex.getMessage());
@@ -168,8 +179,8 @@ public class ApplicationServeur {
             }else{
                 field.set(pointeurObjet,valeur);
             }
-            ObjectOutputStream outputToClient = new ObjectOutputStream(connectionSocket.getOutputStream()); //Création du Stream de sortie
-            outputToClient.writeObject(new Boolean(true));
+            out.writeObject(new Boolean(true));
+            out.flush();
         }
         catch(NoSuchFieldException ex){
             log(ex.getMessage());
@@ -196,8 +207,8 @@ public class ApplicationServeur {
         try{
             Object newObject = classeDeLobjet.newInstance();
             objects.put(identificateur,newObject);
-            ObjectOutputStream outputToClient = new ObjectOutputStream(connectionSocket.getOutputStream()); //Création du Stream de sortie
-            outputToClient.writeObject(new Boolean(true));
+            out.writeObject(new Boolean(true));
+            out.flush();
         }catch(InstantiationException ex){
             log(ex.getMessage());
         }catch(IllegalAccessException ex){
@@ -219,8 +230,8 @@ public class ApplicationServeur {
             URL[] urls = new URL[] { url };
             ClassLoader loader = new URLClassLoader(urls);
             Class thisClass = loader.loadClass(nomQualifie);
-            ObjectOutputStream outputToClient = new ObjectOutputStream(connectionSocket.getOutputStream()); //Création du Stream de sortie
-            outputToClient.writeObject(new Boolean(true));
+            out.writeObject(new Boolean(true));
+            out.flush();
         }catch (IOException ex){
             log(ex.getMessage());
         }catch (ClassNotFoundException ex){
@@ -236,12 +247,16 @@ public class ApplicationServeur {
     public void traiterCompilation(String cheminRelatifFichierSource) {
         try{
             JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
-            File file = new File(sourceFolder + File.pathSeparator + cheminRelatifFichierSource);
+            String[] sourceFileNames = cheminRelatifFichierSource.split(",");
+            ArrayList<File> fileArrayList = new ArrayList<>();
+            for(String filename : sourceFileNames){
+                fileArrayList.add(new File(sourceFolder + File.separator + filename));
+            }
             StandardJavaFileManager sjfm = compiler.getStandardFileManager(null, null, null);
 
             String[] options = new String[] { "-d", classFolder };
-            File[] javaFiles = new File[] { file };
-
+            File[] javaFiles = new File[fileArrayList.size()];
+            fileArrayList.toArray(javaFiles);
             JavaCompiler.CompilationTask compilationTask = compiler.getTask(null, null, null,
                     Arrays.asList(options),
                     null,
@@ -250,8 +265,9 @@ public class ApplicationServeur {
 
             compilationTask.call();
 
-            ObjectOutputStream outputToClient = new ObjectOutputStream(connectionSocket.getOutputStream()); //Création du Stream de sortie
-            outputToClient.writeObject(new Boolean(true));
+
+            out.writeObject(new Boolean(true));
+            out.flush();
         }catch (IOException ex){
             log(ex.getMessage());
         }
@@ -276,8 +292,8 @@ public class ApplicationServeur {
             classes.toArray(types_array);
             Method method = c.getMethod(nomFonction,types_array);
             Object returnValue = method.invoke(pointeurObjet,valeurs);
-            ObjectOutputStream outputToClient = new ObjectOutputStream(connectionSocket.getOutputStream()); //Création du Stream de sortie
-            outputToClient.writeObject(returnValue);
+            out.writeObject(returnValue);
+            out.flush();
         }catch(ClassNotFoundException ex){
             log(ex.getMessage());
         }catch(NoSuchMethodException ex){
@@ -317,10 +333,10 @@ public class ApplicationServeur {
     private void log(String message){
         try
         {
-            System.out.println(LocalDateTime.now().toString() + message);
+            System.out.println(LocalDateTime.now().toString() + " : " + message);
             System.out.println("\r\n");
             FileWriter fw = new FileWriter(outputFile);
-            fw.write (LocalDateTime.now().toString() + message);
+            fw.write (LocalDateTime.now().toString() + " : " + message);
             fw.write ("\r\n");
             fw.close();
         }
