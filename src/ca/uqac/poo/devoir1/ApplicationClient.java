@@ -1,7 +1,10 @@
 package ca.uqac.poo.devoir1;
 
 import java.io.*;
+import java.net.Socket;
 import java.util.ArrayList;
+import java.util.Objects;
+
 import ca.uqac.poo.devoir1.Commande;
 
 /**
@@ -11,7 +14,7 @@ public class ApplicationClient {
     java.io.PrintStream sortieWriter = System.out;
 
     private BufferedReader commandesReader;
-    private BufferedWriter sortieWriter2;
+    //private BufferedWriter sortieWriter2;
 
     /**
      * prend le fichier contenant la liste des commandes, et le charge dans une
@@ -25,6 +28,13 @@ public class ApplicationClient {
             String type =  parts[0];
             String part2 = parts[1];
 
+            while (part2.contains("#")) {
+                parts = part2.split("#");
+                arguments.add(parts[0]);
+                part2 = parts[1];
+            }
+            arguments.add(parts[1]);
+            /**
             switch (type){
                 case "compilation":
                     while (part2.contains(",")) {
@@ -81,10 +91,12 @@ public class ApplicationClient {
                     break;
             }
             return new Commande(type, arguments);
-
+            */
+            return new Commande(type, arguments);
         }catch (IOException e){
             e.printStackTrace();
         }
+
         return new Commande();
 
     }
@@ -106,8 +118,10 @@ public class ApplicationClient {
         }
 
         try {
-            FileWriter fileWriter = new FileWriter(fichSortie);
+            /**FileWriter fileWriter = new FileWriter(fichSortie);
             this.sortieWriter2 = new BufferedWriter(fileWriter);
+             */
+            sortieWriter = new PrintStream(fichSortie);
         }
         catch(IOException ex) {
             System.out.println("Error writing to file '");
@@ -122,8 +136,30 @@ public class ApplicationClient {
      * décrit plus haut, qui seront appelées par  traiteCommande(Commande uneCommande)
      */
     public Object traiteCommande(Commande uneCommande) {
+        try{
+            Socket clientSocket = new Socket("hostname", 6789);
+            OutputStream os = clientSocket.getOutputStream();
+            ObjectOutputStream oos = new ObjectOutputStream(os);
+            oos.writeObject(uneCommande);
+            oos.close();
+            os.close();
 
+            InputStream is = clientSocket.getInputStream();
+            ObjectInputStream ois = new ObjectInputStream(is);
+            Object objectToReturn = ois.readObject();
+            ois.close();
+            is.close();
+            clientSocket.close();
+
+            return objectToReturn;
+
+
+        }catch(Exception e){
+            System.out.println(e);
+        }
+        return new Object();
     }
+
 
 
     /**
