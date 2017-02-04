@@ -1,8 +1,13 @@
 package ca.uqac.poo.devoir1;
+import com.sun.org.apache.xpath.internal.operations.Bool;
+
+import javax.tools.*;
 import java.io.*;
 import java.lang.reflect.Field;
 import java.net.*;
 import java.time.LocalDateTime;
+import java.util.Arrays;
+import java.util.HashMap;
 
 /**
  * Created by dhawo on 03/02/2017.
@@ -13,6 +18,7 @@ public class ApplicationServeur {
     private String classFolder;
     private String outputFile;
     private Socket connectionSocket;
+    private HashMap<String,Object> objects;
 
     /**
      * prend le numéro de port, crée un SocketServer sur le port
@@ -20,8 +26,9 @@ public class ApplicationServeur {
     public ApplicationServeur (int port){
         try{
             welcomeSocket = new ServerSocket(port);
+            objects = new HashMap<>();
         }catch(IOException ex){
-            log("Le Socket n'as pas pu être bindé sur le port donné.")
+            log("Le Socket n'as pas pu être bindé sur le port donné.");
         }
     }
 
@@ -51,7 +58,31 @@ public class ApplicationServeur {
      * elle appelle la méthode spécialisée
      */
     public void traiteCommande(Commande uneCommande) {
-
+        switch(uneCommande.getType()){
+            case "lecture":
+                String id = uneCommande.getArgument(0);
+                String attribut = uneCommande.getArgument(1);
+                Object pointeurObject = objects.get(id);
+                traiterLecture(pointeurObject,attribut);
+                break;
+            case "ecriture":
+                break;
+            case "creation":
+                break;
+            case "chargement":
+                String nomQualifie = uneCommande.getArgument(0);
+                traiterChargement(nomQualifie);
+                break;
+            case "compilation":
+                String[] sourcesFiles = uneCommande.getArgument(0).split(",");
+                String classPath = uneCommande.getArgument(1);
+                for(String sourceFile : sourcesFiles){
+                    traiterCompilation(sourceFile);
+                }
+                break;
+            case "appel":
+                break;
+        }
     }
 
     /**
@@ -62,7 +93,7 @@ public class ApplicationServeur {
         Class c = pointeurObjet.getClass();
         try{
             Field field = c.getField(attribut);
-            Object value = field.get(pointeurObjet);
+            Object value = (field.getType().cast(field.get(pointeurObjet)));
             ObjectOutputStream outputToClient = new ObjectOutputStream(connectionSocket.getOutputStream()); //Création du Stream de sortie
             outputToClient.writeObject(value);
         }catch(NoSuchFieldException ex){
@@ -95,7 +126,20 @@ public class ApplicationServeur {
      * s’est faite correctement.
      */
     public void traiterChargement(String nomQualifie) {
+        try{
+            File file = new File(classFolder);
+            // Convert File to a URL
+            URL url = file.toURI().toURL(); //
+            URL[] urls = new URL[] { url };
+            ClassLoader loader = new URLClassLoader(urls);
+            Class thisClass = loader.loadClass(nomQualifie);
+            ObjectOutputStream outputToClient = new ObjectOutputStream(connectionSocket.getOutputStream()); //Création du Stream de sortie
+            outputToClient.writeObject(new Boolean(true));
+        }catch (IOException ex){
+            log(ex.getMessage());
+        }catch (ClassNotFoundException ex){
 
+        }
     }
 
     /**
@@ -104,6 +148,27 @@ public class ApplicationServeur {
      * relatif par rapport au chemin des fichiers sources.
      */
     public void traiterCompilation(String cheminRelatifFichierSource) {
+        try{
+            JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
+            File file = new File(sourceFolder + File.pathSeparator + cheminRelatifFichierSource);
+            StandardJavaFileManager sjfm = compiler.getStandardFileManager(null, null, null);
+
+            String[] options = new String[] { "-d", classFolder };
+            File[] javaFiles = new File[] { file };
+
+            JavaCompiler.CompilationTask compilationTask = compiler.getTask(null, null, null,
+                    Arrays.asList(options),
+                    null,
+                    sjfm.getJavaFileObjects(javaFiles)
+            );
+
+            compilationTask.call();
+
+            ObjectOutputStream outputToClient = new ObjectOutputStream(connectionSocket.getOutputStream()); //Création du Stream de sortie
+            outputToClient.writeObject(new Boolean(true));
+        }catch (IOException ex){
+            log(ex.getMessage());
+        }
 
     }
 

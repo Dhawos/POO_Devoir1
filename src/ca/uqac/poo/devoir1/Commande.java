@@ -26,4 +26,8 @@ public class Commande implements Serializable {
     public void setType(String type) {
         this.type = type;
     }
+
+    public String getArgument(int i){
+        return arguments.get(i);
+    }
 }
