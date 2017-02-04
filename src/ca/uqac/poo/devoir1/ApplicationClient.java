@@ -36,9 +36,6 @@ public class ApplicationClient {
                 arguments.add(parts[i]);
                 i++;
             }
-            if (type == "fonction"){
-                type = "appel";
-            }
 
             return new Commande(type, arguments);
         }catch (IOException e){
@@ -114,13 +111,10 @@ public class ApplicationClient {
                     return (Boolean)result;
                 case "compilation":
                     return (Boolean)result;
-                case "appel":
-                    System.out.println("test appel !!!!!!!");
+                case "fonction":
                     if (result instanceof Boolean){
                         return (Boolean)result;
                     }else{
-                        System.out.println("test blablablabla");
-                        System.out.println(result.getClass());
                         result = result.getClass().cast(result);
                         return result;
                     }
