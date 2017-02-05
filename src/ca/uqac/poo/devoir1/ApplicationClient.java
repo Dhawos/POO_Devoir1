@@ -63,9 +63,7 @@ public class ApplicationClient {
         }
 
         try {
-            /**FileWriter fileWriter = new FileWriter(fichSortie);
-            this.sortieWriter2 = new BufferedWriter(fileWriter);
-             */
+
             sortieWriter = new PrintStream(fichSortie);
         }
         catch(IOException ex) {
