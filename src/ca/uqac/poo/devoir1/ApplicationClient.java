@@ -136,7 +136,7 @@ public class ApplicationClient {
         sortieWriter.println("Debut des traitements:");
         Commande prochaine = saisisCommande(commandesReader);
         while (prochaine != null) {
-            sortieWriter.println("\tTraitement de la commande " + prochaine + " ...");
+            sortieWriter.println("\tTraitement de la commande " + prochaine.toString() + " ...");
             Object resultat = traiteCommande(prochaine);
             sortieWriter.println("\t\tResultat: " + resultat);
             prochaine = saisisCommande(commandesReader);

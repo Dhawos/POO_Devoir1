@@ -34,4 +34,15 @@ public class Commande implements Serializable {
     public int getNbArguments(){
         return arguments.size();
     }
+
+    @Override
+    public String toString(){
+        String result =  this.type + " avec les arguments : ";
+        int i = 0;
+        while (i < this.arguments.size()){
+            result += this.arguments.get(i) + " ";
+            i++;
+        }
+        return result;
+    }
 }
